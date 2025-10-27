@@ -25,16 +25,14 @@
 <body>
   <div id="viewer"></div>
 
-  <!-- ✅ Load Three.js and helpers (must come before your script) -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/controls/OrbitControls.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/loaders/GLTFLoader.min.js"></script>
+  <!-- ✅ Load Three.js and tools in correct order -->
+  <script src="https://unpkg.com/three@0.164.1/build/three.min.js" defer></script>
+  <script src="https://unpkg.com/three@0.164.1/examples/js/loaders/GLTFLoader.js" defer></script>
+  <script src="https://unpkg.com/three@0.164.1/examples/js/controls/OrbitControls.js" defer></script>
 
   <script>
-    // ✅ Everything waits until Three.js is loaded
-    window.addEventListener('DOMContentLoaded', () => {
+    window.onload = function () {
       const container = document.getElementById('viewer');
-
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0x1b0033);
 
@@ -71,16 +69,30 @@
           const model = gltf.scene;
           scene.add(model);
 
+          // Center the model
+          const box = new THREE.Box3().setFromObject(model);
+          const center = box.getCenter(new THREE.Vector3());
+          model.position.sub(center);
+
+          // Animation loop
           function animate() {
             requestAnimationFrame(animate);
-            model.rotation.y += 0.005;
+            model.rotation.y += 0.005; // auto rotation
             controls.update();
             renderer.render(scene, camera);
           }
           animate();
         },
         undefined,
-        (error) => console.error('Error loading GLB:', error)
+        (error) => {
+          console.error('Error loading GLB:', error);
+          const msg = document.createElement('div');
+          msg.style.color = 'white';
+          msg.style.textAlign = 'center';
+          msg.style.marginTop = '20px';
+          msg.textContent = '⚠️ Model failed to load. Check source.glb path.';
+          container.appendChild(msg);
+        }
       );
 
       window.addEventListener('resize', () => {
@@ -88,7 +100,7 @@
         camera.updateProjectionMatrix();
         renderer.setSize(container.clientWidth, container.clientHeight);
       });
-    });
+    };
   </script>
 </body>
 </html>
