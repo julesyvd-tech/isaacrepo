@@ -1,139 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Isaac Repo</title>
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        background-color: black;
-        color: #00ff00;
-        font-family: "Courier New", monospace;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Isaac Repo</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+      color: limegreen;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #loading {
+      font-size: 1.5em;
+      text-shadow: 0 0 8px limegreen;
+    }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div id="loading">Isaac is thinking...</div>
 
-      #loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #00ff00;
-        font-size: 20px;
-        text-align: center;
-        white-space: pre;
-      }
+  <!-- Load Three.js first -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
-      canvas {
-        display: block;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="loading">Isaac is thinking...</div>
+  <!-- Load GLTFLoader after Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
 
-    <!-- ✅ Global guaranteed Three.js + helpers -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/loaders/GLTFLoader.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/controls/OrbitControls.min.js"></script>
+  <script>
+    // Ensure everything loads AFTER libraries
+    window.addEventListener('load', () => {
+      const loadingText = document.getElementById('loading');
 
-    <script>
-      let scene, camera, renderer, controls, mixer;
+      // Scene setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
 
-      function init() {
-        scene = new THREE.Scene();
+      // Lighting
+      const light = new THREE.DirectionalLight(0xffffff, 2);
+      light.position.set(5, 10, 7.5);
+      scene.add(light);
 
-        camera = new THREE.PerspectiveCamera(
-          75,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-        camera.position.set(0, 1, 3);
+      // Load model
+      const loader = new THREE.GLTFLoader();
+      loader.load(
+        'isaac.glb',
+        (gltf) => {
+          loadingText.remove();
+          scene.add(gltf.scene);
+          gltf.scene.position.set(0, -1, 0);
+          camera.position.z = 2;
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
-
-        // Lighting
-        const light = new THREE.DirectionalLight(0xffffff, 2);
-        light.position.set(5, 5, 5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-
-        // Controls
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-
-        // Loader
-        const loader = new THREE.GLTFLoader();
-        loader.load(
-          "isaac.glb",
-          onLoad,
-          onProgress,
-          onError
-        );
-
-        function onLoad(gltf) {
-          const model = gltf.scene;
-          model.scale.set(1, 1, 1);
-          scene.add(model);
-          document.getElementById("loading").style.display = "none";
+          const animate = () => {
+            requestAnimationFrame(animate);
+            gltf.scene.rotation.y += 0.005;
+            renderer.render(scene, camera);
+          };
+          animate();
+        },
+        (xhr) => {
+          loadingText.textContent = `Isaac is thinking... ${Math.round((xhr.loaded / xhr.total) * 100)}%`;
+        },
+        (error) => {
+          loadingText.textContent = "Error loading Isaac :(";
+          console.error('Error:', error);
         }
+      );
 
-        function onProgress(xhr) {
-          if (xhr.total) {
-            const percent = (xhr.loaded / xhr.total) * 100;
-            document.getElementById("loading").innerText =
-              "Isaac is thinking... " + percent.toFixed(0) + "%";
-          }
-        }
-
-        function onError(error) {
-          console.warn("GLB failed, trying ZIP fallback...");
-          new THREE.FileLoader().load(
-            "isaac.zip",
-            (data) => {
-              const blob = new Blob([data]);
-              const url = URL.createObjectURL(blob);
-              loader.load(
-                url,
-                onLoad,
-                onProgress,
-                (err) => {
-                  console.error("ZIP fallback failed:", err);
-                  document.getElementById("loading").innerText =
-                    "Isaac encountered an error.";
-                }
-              );
-            },
-            onProgress
-          );
-        }
-
-        window.addEventListener("resize", onWindowResize);
-      }
-
-      function onWindowResize() {
+      window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-      }
-
-      const clock = new THREE.Clock();
-
-      function animate() {
-        requestAnimationFrame(animate);
-        const delta = clock.getDelta();
-        if (mixer) mixer.update(delta);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-
-      init();
-      animate();
-    </script>
-  </body>
+      });
+    });
+  </script>
+</body>
 </html>
