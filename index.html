@@ -25,60 +25,69 @@
 <body>
   <div id="viewer"></div>
 
-  <!-- ✅ Load Three.js and extensions the safe way (no imports needed) -->
+  <!-- ✅ Load Three.js and helpers (must come before your script) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/controls/OrbitControls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/loaders/GLTFLoader.min.js"></script>
 
   <script>
-    const container = document.getElementById('viewer');
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1b0033);
+    // ✅ Everything waits until Three.js is loaded
+    window.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('viewer');
 
-    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(2, 2, 4);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1b0033);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        container.clientWidth / container.clientHeight,
+        0.1,
+        100
+      );
+      camera.position.set(2, 2, 4);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    hemiLight.position.set(0, 20, 0);
-    scene.add(hemiLight);
-
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 7.5);
-    scene.add(dirLight);
-
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = true;
-
-    const loader = new THREE.GLTFLoader();
-    loader.load(
-      'source.glb',
-      (gltf) => {
-        const model = gltf.scene;
-        scene.add(model);
-
-        function animate() {
-          requestAnimationFrame(animate);
-          model.rotation.y += 0.005; // auto rotation
-          controls.update();
-          renderer.render(scene, camera);
-        }
-        animate();
-      },
-      undefined,
-      (error) => console.error('Error loading GLB:', error)
-    );
-
-    window.addEventListener('resize', () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
+
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      hemiLight.position.set(0, 20, 0);
+      scene.add(hemiLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+      dirLight.position.set(5, 10, 7.5);
+      scene.add(dirLight);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enableZoom = true;
+
+      const loader = new THREE.GLTFLoader();
+      loader.load(
+        'source.glb',
+        (gltf) => {
+          const model = gltf.scene;
+          scene.add(model);
+
+          function animate() {
+            requestAnimationFrame(animate);
+            model.rotation.y += 0.005;
+            controls.update();
+            renderer.render(scene, camera);
+          }
+          animate();
+        },
+        undefined,
+        (error) => console.error('Error loading GLB:', error)
+      );
+
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
     });
   </script>
 </body>
