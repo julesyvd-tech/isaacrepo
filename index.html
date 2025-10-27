@@ -3,96 +3,91 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Isaac Repo</title>
+    <title>Isaac 3D Viewer</title>
     <style>
-      html, body {
+      body {
         margin: 0;
-        padding: 0;
         overflow: hidden;
-        background-color: black;
-        color: #00ff00;
-        font-family: "Courier New", monospace;
+        background: radial-gradient(circle, #000 70%, #111);
+        color: white;
+        font-family: monospace;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
       }
       #loading {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #00ff00;
-        font-size: 18px;
-        text-align: center;
+        font-size: 1.2em;
       }
       canvas {
         display: block;
       }
     </style>
+
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+        }
+      }
+    </script>
   </head>
   <body>
-    <div id="loading">Isaac is thinking...</div>
+    <div id="loading">isaac is thinking...</div>
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    <!-- ✅ Proven working version -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.148.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.148.0/examples/js/controls/OrbitControls.js"></script>
+      let scene, camera, renderer, controls;
+      const loaderText = document.getElementById('loading');
 
-    <script>
-      let scene, camera, renderer, controls, mixer;
+      init();
+      animate();
 
       function init() {
         scene = new THREE.Scene();
-
-        camera = new THREE.PerspectiveCamera(
-          75,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-        camera.position.set(0, 1, 3);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(1, 1, 2);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        const light = new THREE.DirectionalLight(0xffffff, 2);
-        light.position.set(5, 5, 5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        // Light setup
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(3, 10, 10);
+        scene.add(dirLight);
 
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // Controls
+        controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        const loader = new THREE.GLTFLoader();
-
+        // Load model
+        const loader = new GLTFLoader();
         loader.load(
-          "isaac.glb",
-          function (gltf) {
-            const model = gltf.scene;
-            model.scale.set(1, 1, 1);
-            scene.add(model);
-            document.getElementById("loading").style.display = "none";
-
-            if (gltf.animations && gltf.animations.length) {
-              mixer = new THREE.AnimationMixer(model);
-              const action = mixer.clipAction(gltf.animations[0]);
-              action.play();
-            }
+          './isaac.glb',
+          (gltf) => {
+            scene.add(gltf.scene);
+            loaderText.remove();
           },
-          function (xhr) {
-            if (xhr.total) {
-              const percent = (xhr.loaded / xhr.total) * 100;
-              document.getElementById("loading").innerText =
-                "Isaac is thinking... " + percent.toFixed(0) + "%";
-            }
+          (xhr) => {
+            loaderText.textContent = `loading... ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
           },
-          function (error) {
-            console.error("Error loading isaac.glb:", error);
-            document.getElementById("loading").innerText =
-              "Isaac encountered an error.";
+          (error) => {
+            loaderText.textContent = 'Error loading model 😔';
+            console.error(error);
           }
         );
 
-        window.addEventListener("resize", onWindowResize);
+        window.addEventListener('resize', onWindowResize);
       }
 
       function onWindowResize() {
@@ -101,18 +96,11 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      const clock = new THREE.Clock();
-
       function animate() {
         requestAnimationFrame(animate);
-        const delta = clock.getDelta();
-        if (mixer) mixer.update(delta);
         controls.update();
         renderer.render(scene, camera);
       }
-
-      init();
-      animate();
     </script>
   </body>
 </html>
