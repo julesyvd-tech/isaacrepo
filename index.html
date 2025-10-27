@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D Object Viewer</title>
+  <title>Isaac — 3D Viewer</title>
   <style>
     body {
       margin: 0;
@@ -12,95 +12,140 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      color: white;
+      font-family: "Courier New", Courier, monospace;
+      overflow: hidden;
     }
+
     #viewer {
       width: 600px;
       height: 600px;
       background-color: #1b0033;
       border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #00ff00;
+      font-size: 18px;
+      font-family: "Courier New", Courier, monospace;
+      text-shadow: 0 0 10px #00ff00;
+      letter-spacing: 1px;
+      white-space: nowrap;
+      border-right: 2px solid #00ff00;
+      width: 0;
+      overflow: hidden;
+      animation:
+        typing 2.5s steps(20, end) 1s forwards,
+        flicker 1.8s infinite 4s;
+    }
+
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 220px; }
+    }
+
+    @keyframes flicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 0.9; }
+      20%, 24%, 55% { opacity: 0.4; }
+    }
+
+    @keyframes fadeout {
+      from { opacity: 1; }
+      to { opacity: 0; }
     }
   </style>
 </head>
-<body>
-  <div id="viewer"></div>
 
-  <!-- ✅ Load Three.js and tools in correct order -->
-  <script src="https://unpkg.com/three@0.164.1/build/three.min.js" defer></script>
-  <script src="https://unpkg.com/three@0.164.1/examples/js/loaders/GLTFLoader.js" defer></script>
-  <script src="https://unpkg.com/three@0.164.1/examples/js/controls/OrbitControls.js" defer></script>
+<body>
+  <div id="viewer">
+    <div id="loading">Isaac is thinking...</div>
+  </div>
+
+  <!-- ✅ Load Three.js and helpers -->
+  <script src="https://unpkg.com/three@0.164.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.164.1/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://unpkg.com/three@0.164.1/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    window.onload = function () {
-      const container = document.getElementById('viewer');
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1b0033);
+    const container = document.getElementById('viewer');
+    const loadingText = document.getElementById('loading');
 
-      const camera = new THREE.PerspectiveCamera(
-        45,
-        container.clientWidth / container.clientHeight,
-        0.1,
-        100
-      );
-      camera.position.set(2, 2, 4);
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1b0033);
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      container.appendChild(renderer.domElement);
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      container.clientWidth / container.clientHeight,
+      0.1,
+      100
+    );
+    camera.position.set(2, 2, 4);
 
-      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-      hemiLight.position.set(0, 20, 0);
-      scene.add(hemiLight);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-      dirLight.position.set(5, 10, 7.5);
-      scene.add(dirLight);
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
 
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.enableZoom = true;
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(5, 10, 7.5);
+    scene.add(dirLight);
 
-      const loader = new THREE.GLTFLoader();
-      loader.load(
-        'source.glb',
-        (gltf) => {
-          const model = gltf.scene;
-          scene.add(model);
+    // Controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
 
-          // Center the model
-          const box = new THREE.Box3().setFromObject(model);
-          const center = box.getCenter(new THREE.Vector3());
-          model.position.sub(center);
+    // Load the GLB model
+    const loader = new THREE.GLTFLoader();
+    loader.load(
+      'isaac.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(1, 1, 1);
+        scene.add(model);
 
-          // Animation loop
-          function animate() {
-            requestAnimationFrame(animate);
-            model.rotation.y += 0.005; // auto rotation
-            controls.update();
-            renderer.render(scene, camera);
-          }
-          animate();
-        },
-        undefined,
-        (error) => {
-          console.error('Error loading GLB:', error);
-          const msg = document.createElement('div');
-          msg.style.color = 'white';
-          msg.style.textAlign = 'center';
-          msg.style.marginTop = '20px';
-          msg.textContent = '⚠️ Model failed to load. Check source.glb path.';
-          container.appendChild(msg);
+        // Smooth fade-out for loading text
+        setTimeout(() => {
+          loadingText.style.animation = 'fadeout 1.5s forwards';
+          setTimeout(() => loadingText.style.display = 'none', 1500);
+        }, 4500);
+
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
+          model.rotation.y += 0.005;
+          controls.update();
+          renderer.render(scene, camera);
         }
-      );
+        animate();
+      },
+      undefined,
+      (error) => {
+        loadingText.textContent = 'Error loading model.';
+        loadingText.style.color = 'red';
+        console.error(error);
+      }
+    );
 
-      window.addEventListener('resize', () => {
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-      });
-    };
+    // Responsive resize
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
   </script>
 </body>
 </html>
