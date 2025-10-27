@@ -25,7 +25,7 @@
 <body>
   <div id="viewer"></div>
 
-  <!-- ✅ Stable Three.js setup -->
+  <!-- ✅ Load Three.js and extensions the safe way (no imports needed) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/controls/OrbitControls.js"></script>
@@ -33,6 +33,7 @@
   <script>
     const container = document.getElementById('viewer');
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1b0033);
 
     const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
     camera.position.set(2, 2, 4);
@@ -60,12 +61,11 @@
       'source.glb',
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(1, 1, 1);
         scene.add(model);
 
         function animate() {
           requestAnimationFrame(animate);
-          model.rotation.y += 0.005; // auto spin
+          model.rotation.y += 0.005; // auto rotation
           controls.update();
           renderer.render(scene, camera);
         }
